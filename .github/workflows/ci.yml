@@ -1,0 +1,54 @@
+name: Foundation tests
+
+on:
+  push:
+    branches:
+      - main
+      - "research/**"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Pinned Rust toolchain
+        run: |
+          rustup show active-toolchain
+          rustc --version
+          cargo --version
+      - name: Python fixture tests
+        run: python3 -m unittest discover -s scripts -p 'test_*.py'
+      - name: Check committed dependency lockfile
+        run: |
+          test -f Cargo.lock
+          cargo metadata --locked --format-version 1 --no-deps > /dev/null
+      - name: Rust format
+        run: cargo fmt --all -- --check
+      - name: Rust lints
+        run: cargo clippy --locked --all-targets -- -D warnings
+      - name: Rust tests
+        run: cargo test --locked --all-targets
+      - name: Build binary
+        run: cargo build --locked --bin invariant
+      - name: Standalone Zstandard baseline available
+        run: zstd --version
+      - name: Deterministic synthetic comparison
+        run: python3 scripts/benchmark.py --binary target/debug/invariant --repetitions 3
+      - name: Git and chunk history comparisons
+        run: python3 scripts/history_baselines.py
+      - name: Cold and warm fictional sync simulation
+        run: python3 scripts/sync_baselines.py
+      - name: Batched reference-index fictional sync comparison
+        run: python3 scripts/batched_sync.py
+      - name: Need-specific probe and bitmap synthetic comparison
+        run: python3 scripts/sync_v2.py --chunk-sizes 1024,4096,16384
+      - name: Analytical latency sensitivity across matched histories
+        run: python3 scripts/latency_model.py
+      - name: Content-defined versus fixed-block synthetic comparison
+        run: python3 scripts/cdc_sync.py
