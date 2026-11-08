@@ -37,6 +37,7 @@ has been established.
     python3 scripts/batched_sync.py
     python3 scripts/sync_v2.py --chunk-sizes 1024,4096,16384
     python3 scripts/latency_model.py
+    python3 scripts/cdc_sync.py
 
 ## Version-history baselines (synthetic only)
 
@@ -130,6 +131,29 @@ Times are **computed**, not observed. The simplistic sequential-message
 model excludes real network conditions, protocol processing, CPU/memory,
 authentication, TLS and retries. No performance, security, or compression
 novelty claim is supported. See docs/LATENCY-MODEL.md.
+
+## Phase 8: deterministic content-defined chunking (synthetic only)
+
+scripts/cdc_sync.py implements a simple, deterministic gear-hash
+content-defined chunker using 2 KiB minimum, 4 KiB target and 8 KiB
+maximum blocks. It **reuses Phase 5's advertisement, ordered 4-byte
+references and single Zstandard frame approach**, but carries the
+chunking parameters in a distinct experimental format. Warm, cold and
+lost-context exact reconstruction are checked before reporting bytes.
+
+It compares five fictional five-revision histories with Phase 5's fixed
+4 KiB batched approach, counting every receiver catalog, sender header,
+reference, unique-chunk digest/length and frame byte. Receiver context
+storage is reported separately as a lower bound. A byte insertion near
+the start of a large random file heavily favors content-defined
+boundaries, while stable aligned edits favor fixed blocks. Completely
+new random data typically loses to full Zstandard; no universal win.
+
+This research implementation is **not FastCDC, CARE, original compression
+research proof, a production protocol, or a safe decoder**. Decoder
+output is not bounded for hostile compressed frames; no real networking,
+latency/CPU/energy equivalence or authorization has been implemented.
+See docs/CDC-BASELINE.md for format, fairness and negative results.
 
 ## Experimental CLI
 

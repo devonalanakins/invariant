@@ -250,18 +250,56 @@ This freezes *Rust dependency resolution only*, not the full benchmark
 environment: Python, Git, Zstandard, runner and operating-system
 versions are still not fully pinned.
 
+## Phase 8: content-defined boundaries versus fixed-block batching
+
+scripts/cdc_sync.py provides a **simple deterministic gear-hash
+content-defined chunker** (minimum 2 KiB, target 4 KiB, maximum 8 KiB,
+seed fixed at source level). This is an independently known family of
+techniques, **not FastCDC, CARE, a new general codec, or an original
+information-theoretic discovery**.
+
+To isolate chunk boundaries, it retains Phase 5's full verified receiver
+advertisement, 4-byte ordered references, SHA-256 unique-block keys and
+single Zstandard frame, with explicit header parameters for CDC.
+All receiver advertisements, metadata, frame bytes, receiver context
+lower-bound bytes and last-snapshot context-loss recovery are counted.
+The receiver independently verifies canonical cutpoints after verifying
+every block and the whole snapshot; failed reconstruction cannot commit
+new blocks.
+
+Locally observed five-revision synthetic warm-transfer bytes:
+
+| Synthetic history | Stateless full Zstd | Fixed 4 KiB Phase 5 | CDC 2/4/8 KiB |
+| --- | ---: | ---: | ---: |
+| Evolving code | 4,218 | 6,734 | 4,924 |
+| Evolving events | 11,126 | 8,203 | 7,687 |
+| Stable binary with localized edits | 1,311,205 | 291,538 | 322,483 |
+| Shifted binary with prefix insertions | 655,852 | 673,269 | 180,677 |
+| Five independent random snapshots | 60,470 | 62,455 | 62,495 |
+
+CDC repairs much of the *fixed-boundary shift* pathology, but the
+aligned-edit workload favors fixed blocks and independent noise favors
+full-object compression. The evolving-code case still loses to full
+Zstandard. Differences in retained context are separately reported;
+these total-byte figures do not measure CPU, energy, real network time
+or a production archive's reliability. See docs/CDC-BASELINE.md.
+
+Exact Python 3.11+/Zstandard implementations can affect byte totals.
+Benchmarks report their environment; the external runtime stack is not
+fully pinned. All data is synthetic, with zero customer or personal data.
+
 ## Next experiments
 
-1. Pin external benchmark tool versions and reproduce measurements on
-   a documented, controlled runner; audit Rust lockfile dependencies.
-2. Measure real network round-trip latency and CPU/peak-memory/energy,
-   including cache creation, loss/recovery, authentication and retries.
-3. Compare content-defined chunking with fixed boundaries using public,
-   non-sensitive, varied datasets, especially shifted and noisy cases.
-4. Design authenticated, metadata-private negotiation and bounded decoding
-   before any non-synthetic input or deployment.
-5. Test narrowly scoped CARE candidates only after unbiased independent
-   review; retain and publish negative findings.
+1. Reproduce Phase 8 under a pinned Python/Zstandard environment and
+   independently review the CDC reference implementation.
+2. Measure wall/CPU/peak memory and real latency including receiver
+   catalog creation, persistent context, retries and network handshakes.
+3. Add varied publicly redistributable non-sensitive workloads and
+   cross-validate against mature content-defined chunkers/backup tools.
+4. Investigate per-revision cost-aware full/Zstd/fixed/CDC selection,
+   explicitly including strategy metadata and switching costs.
+5. Threat-model authentication, metadata privacy and bounded decoding
+   before any networking or untrusted inputs; only then investigate CARE.
 
 ## Exit gate
 
