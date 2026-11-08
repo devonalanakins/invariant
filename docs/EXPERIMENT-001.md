@@ -180,19 +180,52 @@ middle-out encoding, or a new information-theoretic discovery.
 See `docs/BATCHED-SYNC.md` for the exact format and limitations. Do not
 use for private content, backups, production applications or network traffic.
 
+## Phase 6: need-specific probe / bitmap negotiation
+
+scripts/sync_v2.py investigates an alternative to the Phase 5 receiver
+catalog broadcast. The sender first sends *only the chunk identities it
+needs* for a snapshot, the receiver returns a verified-availability bitmap,
+and the sender transmits all missing unique blocks in one compressed frame.
+This uses **three protocol messages per revision**, rather than the two
+modeled by Phases 4 and 5; additional round-trip latency is not measured.
+
+All messages, headers, 32-byte hashes, bitmap bytes, lengths and compressed
+payload bytes are accounted for. Cache-loss/rotation recovery and a
+lower-bound receiver-context storage model are included. The SHA-256 scope
+identity is **not authentication or authorization**. Metadata fingerprints
+are exposed, and Zstandard output decoding is not bounded on hostile input.
+This is exclusively an in-memory synthetic experiment, not an implementable
+security or production transport design.
+
+The 4 KiB comparison on shared five-revision synthetic histories yielded
+the following locally measured totals (bytes):
+
+| History | Stateless full Zstd | Phase 4 warm | Phase 5 catalog-index warm | Phase 6 probe/bitmap warm |
+| --- | ---: | ---: | ---: | ---: |
+| Evolving code | 4,218 | 11,697 | 6,734 | 5,344 |
+| Evolving events | 11,126 | 11,307 | 8,203 | 7,834 |
+
+These results measure transfer bytes only, not latency or CPU/memory
+efficiency. The code case **still loses to full Zstd**. Two additional
+unfavorable stress histories (shifted random data and independent random
+revisions) also lose to full Zstandard. The 1 KiB and 16 KiB evaluations
+are sensitivity tests, not matched chunk-size Phase 5 comparisons.
+
+See docs/PROBE-BITMAP-SYNC.md for the full message layout, counting rules,
+failure semantics and nonclaims. The protocol is separate from IVN0 and
+does not implement or validate CARE.
+
 ## Next experiments
 
-1. Commit a reviewed Cargo.lock, pin external benchmark tool versions and run
-   reproducible experiments on matching hardware.
-2. Establish fair single-process CPU/peak-memory and reproducible latency
-   baselines; add real public non-sensitive datasets beyond synthetic cases.
-3. Evaluate content-defined chunking, batching variants and compact catalog
-   negotiation while including receiver context and recovery costs.
-4. Formalize authenticated context exchange and bounded decoding *before*
-   considering network use or untrusted content.
-5. Implement a narrowly scoped CARE candidate only after baselines and cost
-   accounting are independently reviewed; keep results reproducible and
-   publish negative findings.
+1. Commit a verified Cargo.lock and pin the remaining external benchmark
+   tools/versions, then rerun all experiments on matched hardware.
+2. Measure end-to-end latency of the extra probe/bitmap message, normalized
+   CPU/peak memory/energy and long-lived cache maintenance.
+3. Test content-defined chunking and realistic public non-sensitive data,
+   including cases unfavorable to any one proposed approach.
+4. Define authenticated context and bounded decoder protection before any
+   real networking or private-data use.
+5. Begin narrowly scoped CARE experiments only after unbiased baseline review.
 
 ## Exit gate
 

@@ -34,6 +34,7 @@ has been established.
     python3 scripts/history_baselines.py
     python3 scripts/sync_baselines.py
     python3 scripts/batched_sync.py
+    python3 scripts/sync_v2.py --chunk-sizes 1024,4096,16384
 
 ## Version-history baselines (synthetic only)
 
@@ -90,6 +91,27 @@ The repository selects Rust 1.99.1 with `rust-toolchain.toml`; Rust dependency
 versions are not fully locked until a reviewed `Cargo.lock` is committed.
 Exact Zstandard/Python/Git versions remain runner-dependent and are reported
 by the benchmarks rather than claimed pinned.
+
+## Need-specific probe/bitmap sync (Phase 6, synthetic only)
+
+scripts/sync_v2.py is a separate comparison against the existing Phase 5
+batched catalog-index protocol. The sender transmits only the chunk hashes
+required for its next snapshot, the receiver returns a bitmap of its verified
+chunks, and the sender batches missing unique chunks into one Zstandard
+frame. This reduces repeated full-cache advertisements but introduces
+a **third protocol message**; the extra latency is not measured.
+
+The benchmark tests the two evolving histories plus unfavorable shifted
+random bytes and independent noise, with 1, 4 and 16 KiB chunks. All probe,
+bitmap, frame, reference and metadata bytes are included; exact round trips,
+cache loss, corruption, stale claims and scope rotation are tested.
+Receiver context storage is separately reported as a lower bound.
+
+On two shared 4 KiB fixtures the new protocol uses fewer warm wire bytes
+than Phase 5, but it still loses to full Zstandard for evolving code.
+The stress fixtures also lose to full Zstandard. This is a **known-primitive
+research variant**, not CARE, a novel compressor, an authenticated service
+or a safe decoder. See docs/PROBE-BITMAP-SYNC.md.
 
 ## Experimental CLI
 

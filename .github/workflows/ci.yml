@@ -42,3 +42,5 @@ jobs:
         run: python3 scripts/sync_baselines.py
       - name: Batched reference-index fictional sync comparison
         run: python3 scripts/batched_sync.py
+      - name: Need-specific probe and bitmap synthetic comparison
+        run: python3 scripts/sync_v2.py --chunk-sizes 1024,4096,16384
