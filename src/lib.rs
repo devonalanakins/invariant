@@ -84,10 +84,8 @@ pub fn decode(container: &[u8]) -> Result<Vec<u8>, ContainerError> {
         return Err(ContainerError::UnsupportedCodec(codec));
     }
 
-    let original_len =
-        u64::from_le_bytes(container[6..14].try_into().expect("fixed header slice"));
-    let encoded_len =
-        u64::from_le_bytes(container[14..22].try_into().expect("fixed header slice"));
+    let original_len = u64::from_le_bytes(container[6..14].try_into().expect("fixed header slice"));
+    let encoded_len = u64::from_le_bytes(container[14..22].try_into().expect("fixed header slice"));
     if original_len > MAX_INPUT_BYTES as u64 || encoded_len > MAX_CONTAINER_BYTES as u64 {
         return Err(ContainerError::TooLarge);
     }
@@ -175,16 +173,10 @@ mod tests {
     fn rejects_unrecognized_version_and_codec() {
         let mut package = encode(b"hello").unwrap();
         package[4] = 1;
-        assert_eq!(
-            decode(&package),
-            Err(ContainerError::UnsupportedVersion(1))
-        );
+        assert_eq!(decode(&package), Err(ContainerError::UnsupportedVersion(1)));
         package[4] = 0;
         package[5] = 255;
-        assert_eq!(
-            decode(&package),
-            Err(ContainerError::UnsupportedCodec(255))
-        );
+        assert_eq!(decode(&package), Err(ContainerError::UnsupportedCodec(255)));
     }
 
     #[test]
