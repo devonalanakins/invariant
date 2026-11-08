@@ -25,8 +25,9 @@ has been established.
 
 ## Build and verify (Rust 1.99.1 pinned, Python 3.11+)
 
-    cargo test --all-targets
-    cargo build --bin invariant
+    cargo clippy --locked --all-targets -- -D warnings
+    cargo test --locked --all-targets
+    cargo build --locked --bin invariant
     python3 -m unittest discover -s scripts -p 'test_*.py'
     zstd --version
     python3 scripts/benchmark.py --binary target/debug/invariant --repetitions 3
@@ -88,10 +89,12 @@ This is a known-primitive research baseline, NOT CARE, a production wire
 protocol or an authenticated cross-device system. The test decoder is
 not safe for hostile compressed input. See `docs/BATCHED-SYNC.md`.
 
-The repository selects Rust 1.99.1 with `rust-toolchain.toml`; Rust dependency
-versions are not fully locked until a reviewed `Cargo.lock` is committed.
-Exact Zstandard/Python/Git versions remain runner-dependent and are reported
-by the benchmarks rather than claimed pinned.
+The repository selects Rust 1.99.1 with `rust-toolchain.toml`; a
+generated, reviewed `Cargo.lock` records all 21 resolved Rust packages.
+GitHub CI enforces `cargo --locked` during lints, tests and builds.
+This freezes Rust dependencies for this prototype, not the full benchmark
+environment. Zstandard/Python/Git/OS versions remain runner-dependent and
+are reported by the benchmarks rather than claimed pinned.
 
 ## Need-specific probe/bitmap sync (Phase 6, synthetic only)
 

@@ -105,3 +105,8 @@ synthetic benchmark scripts:
 
 The JSON report explicitly marks measured_network_latency=false and
 performance_claims_permitted=false, and includes all scenario assumptions.
+
+Rust reproducibility note: rust-toolchain.toml selects 1.99.1 and the
+committed Cargo.lock pins the prototype's 21 Rust dependency packages.
+The exact external Python, Zstandard, Git and operating-system versions
+remain runner-dependent and must be captured for all published experiments.

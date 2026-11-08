@@ -242,23 +242,26 @@ context-storage lower bound, and last-revision cache-loss recovery cost
 separately. See docs/LATENCY-MODEL.md for equations and assumptions.
 The work is not a new compressor or production network protocol.
 
-Rust 1.99.1 is already selected. A reviewed Cargo.lock must be
-generated and committed and CI must use --locked before calling Rust
-dependency resolution reproducible. Exact Python, Git, Zstandard, runner,
-and operating-system versions are not yet pinned.
+Rust 1.99.1 is selected in rust-toolchain.toml. The generated
+Cargo.lock now records 21 resolved packages, and CI uses --locked for
+Rust lint, tests and build. The lockfile was produced on GitHub Actions
+with cargo generate-lockfile on the pinned compiler, then committed.
+This freezes *Rust dependency resolution only*, not the full benchmark
+environment: Python, Git, Zstandard, runner and operating-system
+versions are still not fully pinned.
 
 ## Next experiments
 
-1. Add reviewed Cargo.lock and enforce cargo --locked in CI; improve
-   external benchmark version pinning and reproducible runner setup.
-2. Measure real end-to-end latency, CPU, peak memory, energy, and
-   context-creation/recovery costs in an isolated controlled environment.
-3. Compare content-defined chunking with fixed boundaries on public,
-   non-sensitive, highly varied datasets, including shifted/noisy cases.
-4. Design authenticated, metadata-private context negotiation and
-   output-bounded decompression before any non-synthetic deployment.
-5. Only then test narrowly scoped CARE candidates; publish negative
-   findings as readily as favorable ones.
+1. Pin external benchmark tool versions and reproduce measurements on
+   a documented, controlled runner; audit Rust lockfile dependencies.
+2. Measure real network round-trip latency and CPU/peak-memory/energy,
+   including cache creation, loss/recovery, authentication and retries.
+3. Compare content-defined chunking with fixed boundaries using public,
+   non-sensitive, varied datasets, especially shifted and noisy cases.
+4. Design authenticated, metadata-private negotiation and bounded decoding
+   before any non-synthetic input or deployment.
+5. Test narrowly scoped CARE candidates only after unbiased independent
+   review; retain and publish negative findings.
 
 ## Exit gate
 

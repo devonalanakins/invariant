@@ -24,20 +24,18 @@ jobs:
           cargo --version
       - name: Python fixture tests
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
-      - name: Temporary emit Cargo.lock for reviewed dependency pinning
+      - name: Check committed dependency lockfile
         run: |
-          cargo generate-lockfile
-          echo INVARIANT_LOCKFILE_BEGIN
-          cat Cargo.lock
-          echo INVARIANT_LOCKFILE_END
+          test -f Cargo.lock
+          cargo metadata --locked --format-version 1 --no-deps > /dev/null
       - name: Rust format
         run: cargo fmt --all -- --check
       - name: Rust lints
-        run: cargo clippy --all-targets -- -D warnings
+        run: cargo clippy --locked --all-targets -- -D warnings
       - name: Rust tests
-        run: cargo test --all-targets
+        run: cargo test --locked --all-targets
       - name: Build binary
-        run: cargo build --bin invariant
+        run: cargo build --locked --bin invariant
       - name: Standalone Zstandard baseline available
         run: zstd --version
       - name: Deterministic synthetic comparison
