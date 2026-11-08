@@ -97,19 +97,57 @@ size advantages are workload-specific, not novel research claims.
 Run `python3 -m unittest discover -s scripts -p 'test_*.py'` and
 `python3 scripts/history_baselines.py`. Git and Zstandard CLI are required.
 
+## Phase 4: cold and warm transfer baseline (simulation only)
+
+`scripts/sync_baselines.py` models a receiver with a scope-specific in-memory
+chunk cache. An explicit receiver advertisement contains a scope digest,
+chunk count and sorted SHA-256 chunk IDs. A sender reads that advertisement,
+sends ordered chunk references and Zstandard-framed missing chunks, and
+verifies the reconstructed snapshot SHA-256 after decoding.
+
+The same five revisions are sent three ways: stateless full-Zstandard packets
+with versioned integrity headers; independent cold chunk transfers (no cached
+context); and chained warm chunk transfers (the receiver retains earlier
+chunks). The measured wire cost includes every advertisement and sender packet,
+including framing, references, chunk digests and Zstandard data. No simulated
+wire bytes are excluded merely because they appear to be "metadata".
+
+Receiver context memory is recorded separately as a **lower bound**:
+raw cached chunk bytes plus 32 bytes per ID; Python object, allocator, disk,
+index and persistence costs are not counted. Context-loss recovery retransmits
+the last complete snapshot after the receiver cache is cleared. Scope rotation
+uses a fresh receiver; stale or counterfeit advertisements fail closed and
+cannot silently reconstruct data not actually cached.
+
+**Negative result:** Simple 4 KiB block synchronization can transfer *more*
+than a full Zstandard snapshot because it pays for individual compressed
+blocks, full hash manifests and receiver catalogs. This is an explicit
+baseline to improve, not a result to hide.
+
+**Major security limitation:** The scope digest is a syntactic namespace,
+*not authentication or authorization*. Hash advertisements leak information
+about receiver data. Decoder output from external Zstandard is not strictly
+bounded against hostile frames. The program simulates transfers in memory;
+it does not implement TLS, network errors, permissions, multi-party
+negotiation or production persistence. It must never receive untrusted input
+or be incorporated into real archives, backups, apps or services.
+
+Further protocol definitions, counted fields, and the comparison's meaning
+are in `docs/SYNC-BASELINE.md`. CI exercises exact round trips and adversarial
+synthetic cases, including failure atomicity.
+
 ## Next experiments
 
-1. Freeze the Rust dependency lockfile/toolchain and record all test tools.
-2. Measure cold and warm incremental transfers using explicit delta/manifest
-   wire formats, including context distribution and dependency recovery cost.
-3. Run comparable CPU, memory, throughput, and energy benchmarks under
-   normalized execution conditions; add more challenging public fixtures.
-4. Independently validate safety and restore behavior; harden a future
-   production decoder separately from this synthetic-only prototype.
-5. Implement constrained CARE research candidates against these baselines;
-   then test anchor-first bidirectional coding and publish negative results.
-6. Discard any proposed algorithm that fails matched resource-cost tests.
-
+1. Commit Rust dependency lockfile, pin toolchain and research tool versions.
+2. Establish fair single-process CPU/peak-memory and reproducible latency
+   baselines; add real public non-sensitive datasets beyond synthetic cases.
+3. Study catalog overhead reduction, content-defined chunking, chunk batching,
+   and the tradeoff between stored shared context and retransmission.
+4. Formalize authenticated context exchange and bounded decoding *before*
+   considering network use or untrusted content.
+5. Implement a narrowly scoped CARE candidate only after baselines and cost
+   accounting are independently reviewed; keep results reproducible and
+   publish negative findings.
 
 ## Exit gate
 

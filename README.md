@@ -32,6 +32,7 @@ has been established.
     python3 scripts/benchmark.py --binary target/debug/invariant --repetitions 3
     git --version
     python3 scripts/history_baselines.py
+    python3 scripts/sync_baselines.py
 
 ## Version-history baselines (synthetic only)
 
@@ -49,6 +50,22 @@ all dictionary bytes. Git's repository size is **not** the same measurement as
 a network sync payload. These approaches are materially different and cannot
 support speed, novelty or universal compression claims. The research-only
 chunk decoder is not hardened for untrusted inputs.
+
+## Cold/warm transfer model (fictional data only)
+
+`scripts/sync_baselines.py` compares stateless full-Zstandard packets,
+independent cold transfers and sequential warm transfers of the same five
+revisions. Every request advertisement, reference manifest, block frame,
+scope digest and recovery resend is counted in the in-memory protocol's
+wire-byte totals. A separate **lower-bound** measurement counts retained
+receiver context bytes, excluding Python allocation and disk overhead.
+
+The baseline uses existing 4 KiB chunk deduplication and Zstandard, **not**
+CARE or a new compression algorithm. It is deliberately not an authenticated
+or hardened network protocol. Tests cover exact reconstruction, stale or
+corrupt context, false advertisements, scope mismatch/rotation, packet damage
+and atomic failure. See `docs/SYNC-BASELINE.md` for exact semantics, limitations
+and the threat boundary. Nothing here is safe to deploy.
 
 ## Experimental CLI
 

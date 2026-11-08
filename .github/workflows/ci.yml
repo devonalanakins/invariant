@@ -38,3 +38,5 @@ jobs:
         run: python3 scripts/benchmark.py --binary target/debug/invariant --repetitions 3
       - name: Git and chunk history comparisons
         run: python3 scripts/history_baselines.py
+      - name: Cold and warm fictional sync simulation
+        run: python3 scripts/sync_baselines.py
