@@ -34,12 +34,30 @@ This is a testing instrument, not a production archival contract. The decoder
 does not authenticate provenance, perform encryption, or provide a stable format
 migration guarantee. Archive and synchronization features remain unimplemented.
 
-## Current benchmark boundaries
+## Benchmark v2: independent reference codecs and evolving datasets
 
-The synthetic Python driver verifies round trips and reports on-disk sizes.
-Its gzip, bz2 and lzma comparisons are **sanity checks**, not the best practical
-baselines. They do not measure speed or energy. Rust CI must pass before its
-binary can be considered verified.
+The Python driver includes standalone `zstd -3` as a modern reference and
+gzip level 6, bzip2 level 9, LZMA preset 6 and raw bytes as additional size
+baselines. The IVN0 container uses Zstandard level 3 or literal data and adds
+its 54-byte test header. For every test it verifies full original-byte recovery
+and deterministic encoded bytes. The benchmark refuses to run if the standalone
+Zstandard CLI is missing. The printed environment includes binary SHA-256,
+Python and Zstandard version, host platform and repeat count.
+
+Besides the four original synthetic corpora it generates two five-revision
+histories (synthetic code and synthetic event records). Regression tests pin
+all ten history snapshot digests. The report totals each history's
+**independently compressed full snapshots**, including frame/header overhead.
+These totals are not a warm-sync measurement, delta comparison or a backup
+deduplication measurement. Context overhead is zero because **none is used**.
+
+Diagnostic median wall times include different Python runtimes, subprocess
+startup and file I/O. They must **not** be used to rank codec performance.
+CPU, peak memory, energy, cold/warm network transfer and recovery from damaged
+context remain unmeasured. Source-tree dependency versions are not locked
+yet, so repeatable dataset bytes do not imply fully pinned benchmark tools.
+The research suite is still non-competitive; speed or novelty claims are
+prohibited.
 
 ## Next experiments
 

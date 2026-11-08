@@ -32,5 +32,7 @@ jobs:
         run: cargo test --all-targets
       - name: Build binary
         run: cargo build --bin invariant
+      - name: Standalone Zstandard baseline available
+        run: zstd --version
       - name: Deterministic synthetic comparison
-        run: python3 scripts/benchmark.py --binary target/debug/invariant
+        run: python3 scripts/benchmark.py --binary target/debug/invariant --repetitions 3

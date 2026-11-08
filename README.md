@@ -17,14 +17,19 @@ anchor-first reconstruction, compressed-domain operations, and semantic
 communication are research hypotheses, not implemented capabilities.
 
 See docs/EXPERIMENT-001.md for the experiment, falsifiers, current scope,
-and next milestones.
+and next milestones. Benchmark v2 compares direct Zstandard level 3, gzip,
+bzip2, LZMA, and uncompressed data against IVN0 on deterministic synthetic
+single objects and evolving full-snapshot histories. All codec sizes include
+frame/container overhead. No contextual algorithm or fair speed comparison
+has been established.
 
 ## Build and verify (Rust stable, Python 3.11+)
 
     cargo test --all-targets
     cargo build --bin invariant
     python3 -m unittest discover -s scripts -p 'test_*.py'
-    python3 scripts/benchmark.py --binary target/debug/invariant
+    zstd --version
+    python3 scripts/benchmark.py --binary target/debug/invariant --repetitions 3
 
 ## Experimental CLI
 
