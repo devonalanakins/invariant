@@ -59,16 +59,57 @@ yet, so repeatable dataset bytes do not imply fully pinned benchmark tools.
 The research suite is still non-competitive; speed or novelty claims are
 prohibited.
 
+## Benchmark v3: real Git histories and self-contained chunk archive
+
+The separate `scripts/history_baselines.py` experiment uses the same two
+five-revision, deterministically generated synthetic histories. It measures:
+
+1. **Standalone Zstd**: each entire historical snapshot independently encoded
+   as a Zstandard level-3 frame, with full round-trip checks.
+2. **Self-contained fixed-block deduplication**: split snapshots into fixed
+   4 KiB blocks, identify identical blocks by SHA-256, store a Zstandard
+   frame containing every unique block, and include all block hashes, lengths,
+   revision digests, block references and framing bytes. The decoder proves
+   that every revision reconstructs byte-for-byte.
+3. **Actual Git packed history**: initialize a synthetic repository, commit
+   each revision using ordinary paths/files, repack Git objects, verify the
+   repository with `git fsck`, and reconstruct every historical revision
+   via `git show`. Report pack bytes, index bytes, other `.git` metadata,
+   and count packed delta entries using `git verify-pack`.
+
+This is a **fixed-block deduplication baseline**, *not* CARE, middle-out
+compression, a new general codec or a deployable file format. The fixture
+archive is fully self-contained but not random-access optimized; its decoder
+is explicitly unsafe to expose to untrusted archive inputs.
+
+Archive bytes, dictionary bytes and metadata bytes are included. Git reports
+total `.git` repository bytes, which includes history, indexes, refs and local
+metadata. These totals reflect **different semantics**: normal Git repositories
+preserve per-file object identity and history; the synthetic fixed-block
+archive uses a single solid compressed dictionary for the complete history.
+They must not be presented as directly interchangeable storage systems.
+
+There is still **no warm-sync transfer**, external context cost, normalized
+throughput, peak memory, energy, resilience to lost dependencies, or
+production backup verification. All datasets are synthetic, and all measured
+size advantages are workload-specific, not novel research claims.
+
+Run `python3 -m unittest discover -s scripts -p 'test_*.py'` and
+`python3 scripts/history_baselines.py`. Git and Zstandard CLI are required.
+
 ## Next experiments
 
-1. Add independent zstd frame, strong codec competitors, delta encoding,
-   Git/backup and sync baselines with comparable overhead.
-2. Build frozen evolving data fixtures and account for initial context cost.
-3. Measure cold/warm transfer, cumulative storage, CPU, memory, latency,
-   decoding costs, and corruption recovery.
-4. Implement a constrained CARE prototype, then compare it fairly.
-5. Test anchor-first bidirectional coding against forward-only alternatives.
-6. Discard or revise any algorithm that fails matched resource-cost tests.
+1. Freeze the Rust dependency lockfile/toolchain and record all test tools.
+2. Measure cold and warm incremental transfers using explicit delta/manifest
+   wire formats, including context distribution and dependency recovery cost.
+3. Run comparable CPU, memory, throughput, and energy benchmarks under
+   normalized execution conditions; add more challenging public fixtures.
+4. Independently validate safety and restore behavior; harden a future
+   production decoder separately from this synthetic-only prototype.
+5. Implement constrained CARE research candidates against these baselines;
+   then test anchor-first bidirectional coding and publish negative results.
+6. Discard any proposed algorithm that fails matched resource-cost tests.
+
 
 ## Exit gate
 

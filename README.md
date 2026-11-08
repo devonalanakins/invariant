@@ -3,7 +3,7 @@
 Experimental research into lossless information representation, contextual
 compression, synchronization efficiency, and trustworthy reconstruction.
 
-**Status: first development increment / NOT production ready.** This project
+**Status: experimental research / NOT production ready.** This project
 does not claim to have invented a new compression algorithm. The current
 prototype is a bounded version-0 container choosing literal or existing
 Zstandard compression, with SHA-256 checking and deterministic synthetic tests.
@@ -30,6 +30,25 @@ has been established.
     python3 -m unittest discover -s scripts -p 'test_*.py'
     zstd --version
     python3 scripts/benchmark.py --binary target/debug/invariant --repetitions 3
+    git --version
+    python3 scripts/history_baselines.py
+
+## Version-history baselines (synthetic only)
+
+`scripts/history_baselines.py` runs three separately verified storage baselines
+on two fictional five-revision histories:
+
+- Separate Zstandard level-3 frames for every full snapshot.
+- A **self-contained fixed-4-KiB-block deduplication baseline** with SHA-256
+  references, a whole-dictionary Zstandard frame, and counted manifest overhead.
+- A real Git repository containing each history as normal files and commits;
+  Git packs and verifies its objects, and all revisions are read back.
+
+The report includes whole-repository Git metadata, archive manifests and
+all dictionary bytes. Git's repository size is **not** the same measurement as
+a network sync payload. These approaches are materially different and cannot
+support speed, novelty or universal compression claims. The research-only
+chunk decoder is not hardened for untrusted inputs.
 
 ## Experimental CLI
 
