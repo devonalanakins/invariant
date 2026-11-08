@@ -1,0 +1,10 @@
+[package]
+name = "invariant"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Experimental, bounded lossless container for INVARIANT research"
+
+[dependencies]
+sha2 = "0.10"
+zstd = "0.13"
