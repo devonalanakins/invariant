@@ -215,17 +215,50 @@ See docs/PROBE-BITMAP-SYNC.md for the full message layout, counting rules,
 failure semantics and nonclaims. The protocol is separate from IVN0 and
 does not implement or validate CARE.
 
+## Phase 7: dependency reproducibility and latency sensitivity
+
+scripts/latency_model.py compares all four existing transfer methods
+against **identical** five-revision histories, including two evolving
+structured fixtures, stable high-entropy bytes with localized mutations,
+binary files with shifted block boundaries, and two additional adverse
+random-data histories.
+
+The modeled time is a sum of packet-byte serialization time and sequential
+one-way propagation delays, using a hypothetical symmetric network. Full
+Zstandard has one message per revision, Phases 4 and 5 have two, and Phase
+6 has three. No actual sockets or network measurements occur. CPU,
+decompression, authentication, encryption, congestion, retries, TCP
+behavior, jitter, setup, parallel/pipelined processing and context-store
+persistence are all outside the model.
+
+For a **50 ms RTT and 10 Mbps** illustrative scenario, the five-revision
+synthetic events history gives 133.9 ms for full Zstandard, 256.6 ms for
+Phase 5 batching and 381.3 ms for the Phase 6 probe protocol. This is a
+**modeled negative result**, not observed Internet performance: sending
+fewer bytes may not compensate for extra negotiation messages.
+
+The report keeps each method's exact reconstructed byte totals,
+context-storage lower bound, and last-revision cache-loss recovery cost
+separately. See docs/LATENCY-MODEL.md for equations and assumptions.
+The work is not a new compressor or production network protocol.
+
+Rust 1.99.1 is already selected. A reviewed Cargo.lock must be
+generated and committed and CI must use --locked before calling Rust
+dependency resolution reproducible. Exact Python, Git, Zstandard, runner,
+and operating-system versions are not yet pinned.
+
 ## Next experiments
 
-1. Commit a verified Cargo.lock and pin the remaining external benchmark
-   tools/versions, then rerun all experiments on matched hardware.
-2. Measure end-to-end latency of the extra probe/bitmap message, normalized
-   CPU/peak memory/energy and long-lived cache maintenance.
-3. Test content-defined chunking and realistic public non-sensitive data,
-   including cases unfavorable to any one proposed approach.
-4. Define authenticated context and bounded decoder protection before any
-   real networking or private-data use.
-5. Begin narrowly scoped CARE experiments only after unbiased baseline review.
+1. Add reviewed Cargo.lock and enforce cargo --locked in CI; improve
+   external benchmark version pinning and reproducible runner setup.
+2. Measure real end-to-end latency, CPU, peak memory, energy, and
+   context-creation/recovery costs in an isolated controlled environment.
+3. Compare content-defined chunking with fixed boundaries on public,
+   non-sensitive, highly varied datasets, including shifted/noisy cases.
+4. Design authenticated, metadata-private context negotiation and
+   output-bounded decompression before any non-synthetic deployment.
+5. Only then test narrowly scoped CARE candidates; publish negative
+   findings as readily as favorable ones.
 
 ## Exit gate
 

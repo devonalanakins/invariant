@@ -35,6 +35,7 @@ has been established.
     python3 scripts/sync_baselines.py
     python3 scripts/batched_sync.py
     python3 scripts/sync_v2.py --chunk-sizes 1024,4096,16384
+    python3 scripts/latency_model.py
 
 ## Version-history baselines (synthetic only)
 
@@ -112,6 +113,20 @@ than Phase 5, but it still loses to full Zstandard for evolving code.
 The stress fixtures also lose to full Zstandard. This is a **known-primitive
 research variant**, not CARE, a novel compressor, an authenticated service
 or a safe decoder. See docs/PROBE-BITMAP-SYNC.md.
+
+## Analytical latency sensitivity (Phase 7; NOT network measurements)
+
+scripts/latency_model.py compares Phase 4 per-chunk, Phase 5 batched-index,
+Phase 6 need-specific probe/bitmap, and stateless Zstandard transfers on
+the exact same six deterministic five-revision synthetic histories. It
+reports their encoded wire bytes, message counts, receiver-context storage
+lower bounds, last-snapshot context-loss resends, and modeled completion
+times under four explicit round-trip-time/bandwidth assumptions.
+
+Times are **computed**, not observed. The simplistic sequential-message
+model excludes real network conditions, protocol processing, CPU/memory,
+authentication, TLS and retries. No performance, security, or compression
+novelty claim is supported. See docs/LATENCY-MODEL.md.
 
 ## Experimental CLI
 
