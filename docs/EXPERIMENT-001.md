@@ -136,13 +136,58 @@ Further protocol definitions, counted fields, and the comparison's meaning
 are in `docs/SYNC-BASELINE.md`. CI exercises exact round trips and adversarial
 synthetic cases, including failure atomicity.
 
+## Phase 5: catalog indexes and batched Zstandard (simulation only)
+
+`scripts/batched_sync.py` adds a comparison candidate that reuses the
+receiver's already-advertised sorted block catalog, stores each snapshot
+reference as a 4-byte catalog/new-block ordinal rather than a 32-byte hash,
+and packs all newly supplied blocks into **one** Zstandard frame. It is
+a separate research-only format, not a change to IVN0 or the earlier
+Phase 4 wire format. The catalog's scope and exact byte contents are
+bound by a SHA-256 digest, but hashes alone are **not authentication**.
+
+Each transfer counts the full receiver advertisement, every reference,
+new-block digest/length metadata and the single frame. Warm-catalog context
+cost is reported as a separate lower-bound retained-byte count. Failed
+decode leaves the cache unchanged; stale or corrupted catalogs, wrong
+scopes, bad references, duplicate definitions and damaged frames fail.
+The decoder is NOT hardened for malicious Zstandard frames, and there is
+no network security or protocol replay defense.
+
+Four synthetic five-snapshot histories are measured. Evolving code and
+events are unchanged from earlier experiments. A **favorable** 256 KiB
+high-entropy binary history changes one fixed 4 KiB block per revision;
+an **unfavorable** 128 KiB high-entropy history receives one-byte
+prefix insertions that shift every block boundary. Both counterexamples
+are explicitly labeled and generated deterministically. Exact recovery
+is asserted for every revision.
+
+Locally observed illustrative wire totals (bytes, five revisions):
+
+| Synthetic history | Stateless full Zstd | Phase 4 warm | Batched warm |
+| --- | ---: | ---: | ---: |
+| Evolving code | 4,218 | 11,697 | 6,734 |
+| Evolving events | 11,126 | 11,307 | 8,203 |
+| Stable binary with edits | 1,311,205 | 301,406 | 291,538 |
+| Shifted binary boundaries | 655,852 | 680,392 | 673,269 |
+
+**Interpretation:** Batched references reduce overhead relative to
+per-chunk frames; the new baseline still **loses to full Zstd** on
+small code and shifted high-entropy histories. The favorable case is
+an expected benefit of ordinary deduplication, not evidence for CARE,
+middle-out encoding, or a new information-theoretic discovery.
+
+See `docs/BATCHED-SYNC.md` for the exact format and limitations. Do not
+use for private content, backups, production applications or network traffic.
+
 ## Next experiments
 
-1. Commit Rust dependency lockfile, pin toolchain and research tool versions.
+1. Commit a reviewed Cargo.lock, pin external benchmark tool versions and run
+   reproducible experiments on matching hardware.
 2. Establish fair single-process CPU/peak-memory and reproducible latency
    baselines; add real public non-sensitive datasets beyond synthetic cases.
-3. Study catalog overhead reduction, content-defined chunking, chunk batching,
-   and the tradeoff between stored shared context and retransmission.
+3. Evaluate content-defined chunking, batching variants and compact catalog
+   negotiation while including receiver context and recovery costs.
 4. Formalize authenticated context exchange and bounded decoding *before*
    considering network use or untrusted content.
 5. Implement a narrowly scoped CARE candidate only after baselines and cost

@@ -23,7 +23,7 @@ single objects and evolving full-snapshot histories. All codec sizes include
 frame/container overhead. No contextual algorithm or fair speed comparison
 has been established.
 
-## Build and verify (Rust stable, Python 3.11+)
+## Build and verify (Rust 1.99.1 pinned, Python 3.11+)
 
     cargo test --all-targets
     cargo build --bin invariant
@@ -33,6 +33,7 @@ has been established.
     git --version
     python3 scripts/history_baselines.py
     python3 scripts/sync_baselines.py
+    python3 scripts/batched_sync.py
 
 ## Version-history baselines (synthetic only)
 
@@ -66,6 +67,29 @@ or hardened network protocol. Tests cover exact reconstruction, stale or
 corrupt context, false advertisements, scope mismatch/rotation, packet damage
 and atomic failure. See `docs/SYNC-BASELINE.md` for exact semantics, limitations
 and the threat boundary. Nothing here is safe to deploy.
+
+## Batched reference-index research baseline (synthetic only)
+
+`scripts/batched_sync.py` extends the previous fixed-block comparison using
+four-byte indexes into a receiver-advertised, sorted chunk catalog. All newly
+transmitted blocks share one Zstandard frame rather than separate frames.
+The packet binds its content and the advertisement by SHA-256 and verifies
+the entire restored snapshot before adding any cache entries.
+
+The report compares full Zstandard, previous per-block warm sync, cold batched
+sync and warm batched sync on evolving code, evolving events, stable binary
+with small edits (favorable), and binary with shifted block boundaries
+(unfavorable). All modeled advertisement, metadata and payload bytes count.
+Retained receiver bytes are shown separately as a **lower bound**.
+
+This is a known-primitive research baseline, NOT CARE, a production wire
+protocol or an authenticated cross-device system. The test decoder is
+not safe for hostile compressed input. See `docs/BATCHED-SYNC.md`.
+
+The repository selects Rust 1.99.1 with `rust-toolchain.toml`; Rust dependency
+versions are not fully locked until a reviewed `Cargo.lock` is committed.
+Exact Zstandard/Python/Git versions remain runner-dependent and are reported
+by the benchmarks rather than claimed pinned.
 
 ## Experimental CLI
 
