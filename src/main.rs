@@ -8,7 +8,7 @@ use std::path::Path;
 fn read_limited(path: &Path, limit: usize) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut file = File::open(path)?;
     let mut bytes = Vec::new();
-    file.by_ref()
+    Read::by_ref(&mut file)
         .take((limit as u64) + 1)
         .read_to_end(&mut bytes)?;
     if bytes.len() > limit {
